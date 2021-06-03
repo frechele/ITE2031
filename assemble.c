@@ -2,12 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MAX_INSTRUCTION 1024
 #define MAX_LINE_LENGTH 1000
 typedef char string_t[MAX_LINE_LENGTH];
 
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
 int isNumber(char *);
 
+void procFirstPass(FILE*);
+void procSecondPass(FILE*, FILE*);
+
+/*
+ * Common Codes
+ */
 typedef union
 {
     unsigned int code;
@@ -48,13 +55,40 @@ typedef union
     } o;
 } inst_t;
 
+enum OpCode
+{
+    OP_ADD  = 0b000,
+    OP_NOR  = 0b001,
+    OP_LW   = 0b010,
+    OP_SW   = 0b011,
+    OP_BEQ  = 0b100,
+    OP_JALR = 0b101,
+    OP_HALT = 0b110,
+    OP_NOOP = 0b111
+};
+
+/*
+ * Common Codes - End
+ */
+
+struct
+{
+    struct {
+        string_t label;
+        int addr;
+    } labels[MAX_INSTRUCTION];
+
+    int numAddrs;
+} labelTable;
+
+int findLabelAddress(const char* label);
+
 int main(int argc, char *argv[])
 {
     char *inFileString;
     char *outFileString;
     FILE *inFilePtr;
     FILE *outFilePtr;
-    string_t label, opcode, arg0, arg1, arg2;
 
     if (argc != 3)
     {
@@ -77,22 +111,57 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // here is an example for how to use readAndParse to read a line from inFilePtr.
-    if (!readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2))
-    {
-        // reached end of file.
-    }
+    // calculate address of each symbolic label.
+    procFirstPass(inFilePtr);
 
     // this is how to rewind the file ptr so that you start reading from the beginning of the file.
     rewind(inFilePtr);
 
-    // after doing a readAndParse, you may want to do the following to test the opcode
-    if (!strcmp(opcode, "add"))
-    {
-        // do whatever you need to do for opcode "add".
-    }
+    // translate to machine code
+    procSecondPass(inFilePtr, outFilePtr);
 
     return 0;
+}
+
+void procFirstPass(FILE* inFilePtr)
+{
+    string_t label, temp;
+    int curAddr;
+
+    labelTable.numAddrs = 0;
+
+    for (curAddr = 0; readAndParse(inFilePtr, label, temp, temp, temp, temp); ++curAddr)
+    {
+        if (strlen(label) > 0)
+        {
+            strncpy(labelTable.labels[labelTable.numAddrs].label, label, MAX_LINE_LENGTH);
+            labelTable.labels[labelTable.numAddrs].addr = curAddr;
+
+            ++labelTable.numAddrs;
+        }
+    }
+}
+
+void procSecondPass(FILE* inFilePtr, FILE* outFilePtr)
+{
+    string_t label, opcode, arg0, arg1, arg2;
+
+    while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2))
+    {
+        
+    }
+}
+
+int findLabelAddress(const char* label)
+{
+    int i;
+    for (i = 0; i < labelTable.numAddrs; ++i)
+    {
+        if (strcmp(label, labelTable.labels[i].label) == 0)
+            return labelTable.labels[i].addr;
+    }
+
+    return -1;
 }
 
 /*
