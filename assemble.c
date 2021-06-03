@@ -5,15 +5,55 @@
 #define MAX_LINE_LENGTH 1000
 typedef char string_t[MAX_LINE_LENGTH];
 
-int readAndParse(FILE*, char*, char*, char*, char*, char*);
-int isNumber(char*);
+int readAndParse(FILE *, char *, char *, char *, char *, char *);
+int isNumber(char *);
 
-int main(int argc, char* argv[])
+typedef union
 {
-    char* inFileString;
-    char* outFileString;
-    FILE* inFilePtr;
-    FILE* outFilePtr;
+    unsigned int code;
+
+    struct
+    {
+        unsigned int destReg : 3;
+        unsigned int unused1 : 13;
+        unsigned int regB : 3;
+        unsigned int regA : 3;
+        unsigned int opcode : 3;
+        unsigned int unused0 : 7;
+    } r;
+
+    struct
+    {
+        int offset : 16;
+        unsigned int regB : 3;
+        unsigned int regA : 3;
+        unsigned int opcode : 3;
+        unsigned int unused : 7;
+    } i;
+
+    struct
+    {
+        unsigned int unused1 : 16;
+        unsigned int regB : 3;
+        unsigned int regA : 3;
+        unsigned int opcode : 3;
+        unsigned int unused0 : 7;
+    } j;
+
+    struct
+    {
+        unsigned int unused1 : 22;
+        unsigned int opcode : 3;
+        unsigned int unused0 : 7;
+    } o;
+} inst_t;
+
+int main(int argc, char *argv[])
+{
+    char *inFileString;
+    char *outFileString;
+    FILE *inFilePtr;
+    FILE *outFilePtr;
     string_t label, opcode, arg0, arg1, arg2;
 
     if (argc != 3)
@@ -66,10 +106,10 @@ int main(int argc, char* argv[])
  *
  * exit(1) if line is too long.
  */
-int readAndParse(FILE* inFilePtr, char* label, char* opcode, char* arg0, char* arg1, char* arg2)
+int readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0, char *arg1, char *arg2)
 {
     string_t line;
-    char* ptr = line;
+    char *ptr = line;
 
     // delete prior values.
     label[0] = opcode[0] = arg0[0] = arg1[0] = arg2[0] = '\0';
@@ -106,7 +146,7 @@ int readAndParse(FILE* inFilePtr, char* label, char* opcode, char* arg0, char* a
 }
 
 // return 1 if string is a number.
-int isNumber(char* string)
+int isNumber(char *string)
 {
     int i;
 
