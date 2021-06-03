@@ -69,5 +69,5 @@ void printState(state_t* state)
     {
         printf("\t\treg[ %d ] %d\n", i, state->reg[i]);
     }
-    printf("end state\n"); //
+    printf("end state\n");
 }
