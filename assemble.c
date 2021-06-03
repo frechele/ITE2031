@@ -164,14 +164,10 @@ enum ErrorCode
     ERR_INVALID_ARGUMENT,
 };
 
-int procOpADD(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpNOR(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpLW(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpSW(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpBEQ(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpJALR(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpHALT(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
-int procOpNOOP(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procRType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procIType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procJType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procOType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
 
 void procSecondPass(FILE *inFilePtr, FILE *outFilePtr)
 {
@@ -219,21 +215,21 @@ void procSecondPass(FILE *inFilePtr, FILE *outFilePtr)
         else
         {
             if (strcmp(opcode, "add") == 0)
-                tmpAddr = procOpADD(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procRType(OP_ADD, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "nor") == 0)
-                tmpAddr = procOpNOR(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procRType(OP_ADD, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "lw") == 0)
-                tmpAddr = procOpLW(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procIType(OP_LW, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "sw") == 0)
-                tmpAddr = procOpSW(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procIType(OP_SW, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "beq") == 0)
-                tmpAddr = procOpBEQ(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procIType(OP_BEQ, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "jalr") == 0)
-                tmpAddr = procOpJALR(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procJType(OP_JALR, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "halt") == 0)
-                tmpAddr = procOpHALT(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procOType(OP_HALT, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "noop") == 0)
-                tmpAddr = procOpNOOP(arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procOType(OP_NOOP, arg0, arg1, arg2, &inst, &errArg);
             else
                 tmpAddr = ERR_UNRECOGNIZED_OPCODE;
 
@@ -384,7 +380,7 @@ int labelOrImmediate(const char *arg, enum ErrorCode *err)
     return addr;
 }
 
-int procOpADD(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procRType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
         return ERR_NOT_ENOUGH_ARGUMENTS;
@@ -407,7 +403,7 @@ int procOpADD(const char *arg0, const char *arg1, const char* arg2, inst_t *inst
         return ERR_INVALID_ARGUMENT;
     }
 
-    inst->r.opcode = OP_ADD;
+    inst->r.opcode = opcode;
     inst->r.regA = atoi(arg0);
     inst->r.regB = atoi(arg1);
     inst->r.destReg = atoi(arg2);
@@ -415,38 +411,7 @@ int procOpADD(const char *arg0, const char *arg1, const char* arg2, inst_t *inst
     return ERR_OK;
 }
 
-int procOpNOR(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
-{
-    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
-        return ERR_NOT_ENOUGH_ARGUMENTS;
-
-    if (!isNumber(arg0))
-    {
-        *errArg = 0;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    if (!isNumber(arg1))
-    {
-        *errArg = 1;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    if (!isNumber(arg2))
-    {
-        *errArg = 2;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    inst->r.opcode = OP_NOR;
-    inst->r.regA = atoi(arg0);
-    inst->r.regB = atoi(arg1);
-    inst->r.destReg = atoi(arg2);
-
-    return ERR_OK;
-}
-
-int procOpLW(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procIType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     enum ErrorCode err = ERR_OK;
 
@@ -465,7 +430,7 @@ int procOpLW(const char *arg0, const char *arg1, const char* arg2, inst_t *inst,
         return ERR_INVALID_ARGUMENT;
     }
 
-    inst->i.opcode = OP_LW;
+    inst->i.opcode = opcode;
     inst->i.regA = atoi(arg0);
     inst->i.regB = atoi(arg1);
     inst->i.offset = labelOrImmediate(arg2, &err);
@@ -477,69 +442,7 @@ int procOpLW(const char *arg0, const char *arg1, const char* arg2, inst_t *inst,
     return err;
 }
 
-int procOpSW(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
-{
-    enum ErrorCode err = ERR_OK;
-
-    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
-        return ERR_NOT_ENOUGH_ARGUMENTS;
-
-    if (!isNumber(arg0))
-    {
-        *errArg = 0;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    if (!isNumber(arg1))
-    {
-        *errArg = 1;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    inst->i.opcode = OP_SW;
-    inst->i.regA = atoi(arg0);
-    inst->i.regB = atoi(arg1);
-    inst->i.offset = labelOrImmediate(arg2, &err);
-
-    // maybe error is in arg2
-    if (err != ERR_OK)
-        *errArg = 2;
-
-    return err;
-}
-
-int procOpBEQ(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
-{
-    enum ErrorCode err = ERR_OK;
-
-    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
-        return ERR_NOT_ENOUGH_ARGUMENTS;
-
-    if (!isNumber(arg0))
-    {
-        *errArg = 0;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    if (!isNumber(arg1))
-    {
-        *errArg = 1;
-        return ERR_INVALID_ARGUMENT;
-    }
-
-    inst->i.opcode = OP_BEQ;
-    inst->i.regA = atoi(arg0);
-    inst->i.regB = atoi(arg1);
-    inst->i.offset = labelOrImmediate(arg2, &err);
-
-    // maybe error is in arg2
-    if (err != ERR_OK)
-        *errArg = 2;
-
-    return err;
-}
-
-int procOpJALR(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procJType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     if (strlen(arg0) == 0 || strlen(arg1) == 0)
         return ERR_NOT_ENOUGH_ARGUMENTS;
@@ -556,23 +459,16 @@ int procOpJALR(const char *arg0, const char *arg1, const char* arg2, inst_t *ins
         return ERR_INVALID_ARGUMENT;
     }
 
-    inst->j.opcode = OP_NOR;
+    inst->j.opcode = opcode;
     inst->j.regA = atoi(arg0);
     inst->j.regB = atoi(arg1);
 
     return ERR_OK;
 }
 
-int procOpHALT(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procOType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
-    inst->o.opcode = OP_HALT;
-
-    return ERR_OK;
-}
-
-int procOpNOOP(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
-{
-    inst->o.opcode = OP_NOOP;
+    inst->o.opcode = opcode;
 
     return ERR_OK;
 }
