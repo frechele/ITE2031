@@ -7,10 +7,10 @@
 typedef char string_t[MAX_LINE_LENGTH];
 
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
-int isNumber(char *);
+int isNumber(const char *);
 
-void procFirstPass(FILE*);
-void procSecondPass(FILE*, FILE*);
+void procFirstPass(FILE *, FILE *);
+void procSecondPass(FILE *, FILE *);
 
 /*
  * Common Codes
@@ -57,11 +57,11 @@ typedef union
 
 enum OpCode
 {
-    OP_ADD  = 0b000,
-    OP_NOR  = 0b001,
-    OP_LW   = 0b010,
-    OP_SW   = 0b011,
-    OP_BEQ  = 0b100,
+    OP_ADD = 0b000,
+    OP_NOR = 0b001,
+    OP_LW = 0b010,
+    OP_SW = 0b011,
+    OP_BEQ = 0b100,
     OP_JALR = 0b101,
     OP_HALT = 0b110,
     OP_NOOP = 0b111
@@ -73,7 +73,8 @@ enum OpCode
 
 struct
 {
-    struct {
+    struct
+    {
         string_t label;
         int addr;
     } labels[MAX_INSTRUCTION];
@@ -81,7 +82,7 @@ struct
     int numAddrs;
 } labelTable;
 
-int findLabelAddress(const char* label);
+int findLabelAddress(const char *label);
 
 int main(int argc, char *argv[])
 {
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
     }
 
     // calculate address of each symbolic label.
-    procFirstPass(inFilePtr);
+    procFirstPass(inFilePtr, outFilePtr);
 
     // this is how to rewind the file ptr so that you start reading from the beginning of the file.
     rewind(inFilePtr);
@@ -120,10 +121,13 @@ int main(int argc, char *argv[])
     // translate to machine code
     procSecondPass(inFilePtr, outFilePtr);
 
+    fclose(inFilePtr);
+    fclose(outFilePtr);
+
     return 0;
 }
 
-void procFirstPass(FILE* inFilePtr)
+void procFirstPass(FILE *inFilePtr, FILE *outFilePtr)
 {
     string_t label, temp;
     int curAddr;
@@ -134,6 +138,15 @@ void procFirstPass(FILE* inFilePtr)
     {
         if (strlen(label) > 0)
         {
+            if (findLabelAddress(label) != -1)
+            {
+                printf("error: duplicate label\n");
+
+                fclose(inFilePtr);
+                fclose(outFilePtr);
+                exit(1);
+            }
+
             strncpy(labelTable.labels[labelTable.numAddrs].label, label, MAX_LINE_LENGTH);
             labelTable.labels[labelTable.numAddrs].addr = curAddr;
 
@@ -142,26 +155,144 @@ void procFirstPass(FILE* inFilePtr)
     }
 }
 
-void procSecondPass(FILE* inFilePtr, FILE* outFilePtr)
+enum ErrorCode
 {
+    ERR_OK,
+    ERR_UNRECOGNIZED_OPCODE,
+    ERR_UNDEFINED_LABEL,
+    ERR_NOT_ENOUGH_ARGUMENTS,
+    ERR_INVALID_ARGUMENT,
+};
+
+int procOpADD(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpNOR(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpLW(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpSW(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpBEQ(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpJALR(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpHALT(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+int procOpNOOP(const char *arg0, const char *arg1, const char *arg2, inst_t *inst, int* errArg);
+
+void procSecondPass(FILE *inFilePtr, FILE *outFilePtr)
+{
+    int curAddr, tmpAddr, errArg;
+    inst_t inst;
     string_t label, opcode, arg0, arg1, arg2;
 
-    while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2))
+    for (curAddr = 0; readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2); ++curAddr)
     {
-        
-    }
-}
+        if (curAddr)
+        {
+            fputc('\n', outFilePtr);
+        }
 
-int findLabelAddress(const char* label)
-{
-    int i;
-    for (i = 0; i < labelTable.numAddrs; ++i)
+        memset(&inst, 0, sizeof inst);
+        tmpAddr = ERR_OK;
+        errArg = -1;
+
+        if (strcmp(opcode, ".fill") == 0)
+        {
+            if (strlen(arg0) == 0)
+            {
+                tmpAddr = ERR_NOT_ENOUGH_ARGUMENTS;
+
+                goto bad;
+            }
+
+            if (isNumber(arg0))
+            {
+                fprintf(outFilePtr, "%d", atoi(arg0));
+            }
+            else
+            {
+                if ((tmpAddr = findLabelAddress(arg0)) == -1)
+                {
+                    tmpAddr = ERR_UNDEFINED_LABEL;
+                    errArg = 0;
+
+                    goto bad;
+                }
+
+                fprintf(outFilePtr, "%d", tmpAddr);
+            }
+        }
+        else
+        {
+            if (strcmp(opcode, "add") == 0)
+                tmpAddr = procOpADD(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "nor") == 0)
+                tmpAddr = procOpNOR(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "lw") == 0)
+                tmpAddr = procOpLW(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "sw") == 0)
+                tmpAddr = procOpSW(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "beq") == 0)
+                tmpAddr = procOpBEQ(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "jalr") == 0)
+                tmpAddr = procOpJALR(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "halt") == 0)
+                tmpAddr = procOpHALT(arg0, arg1, arg2, &inst, &errArg);
+            else if (strcmp(opcode, "noop") == 0)
+                tmpAddr = procOpNOOP(arg0, arg1, arg2, &inst, &errArg);
+            else
+                tmpAddr = ERR_UNRECOGNIZED_OPCODE;
+
+            if (tmpAddr != ERR_OK)
+                goto bad;
+
+            fprintf(outFilePtr, "%u", inst.code);
+        }
+    }
+
+    return;
+
+bad:
+    if (tmpAddr == ERR_NOT_ENOUGH_ARGUMENTS)
     {
-        if (strcmp(label, labelTable.labels[i].label) == 0)
-            return labelTable.labels[i].addr;
+        printf("error: not enought arguments\n");
+    }
+    else if (tmpAddr == ERR_UNDEFINED_LABEL)
+    {
+        printf("error: undefined label\n");
+        switch (errArg)
+        {
+        case 0:
+            printf("%s", arg0);
+            break;
+        case 1:
+            printf("%s", arg1);
+            break;
+        case 2:
+            printf("%s", arg2);
+            break;
+        }
+        printf("\n");
+    }
+    else if (tmpAddr == ERR_INVALID_ARGUMENT)
+    {
+        printf("error: invalid argument\n");
+        switch (errArg)
+        {
+        case 0:
+            printf("%s", arg0);
+            break;
+        case 1:
+            printf("%s", arg1);
+            break;
+        case 2:
+            printf("%s", arg2);
+            break;
+        }
+        printf("\n");
+    }
+    else if (tmpAddr == ERR_UNRECOGNIZED_OPCODE)
+    {
+        printf("error: unrecognized opcode\n%s\n", opcode);
     }
 
-    return -1;
+    fclose(inFilePtr);
+    fclose(outFilePtr);
+    exit(1);
 }
 
 /*
@@ -215,9 +346,233 @@ int readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0, char *a
 }
 
 // return 1 if string is a number.
-int isNumber(char *string)
+int isNumber(const char *string)
 {
     int i;
 
     return (sscanf(string, "%d", &i) == 1);
+}
+
+// return -1 if there is no consistent label.
+int findLabelAddress(const char *label)
+{
+    int i;
+    for (i = 0; i < labelTable.numAddrs; ++i)
+    {
+        if (strcmp(label, labelTable.labels[i].label) == 0)
+            return labelTable.labels[i].addr;
+    }
+
+    return -1;
+}
+
+int labelOrImmediate(const char *arg, enum ErrorCode *err)
+{
+    int addr;
+
+    if (isNumber(arg))
+    {
+        return atoi(arg);
+    }
+
+    if ((addr = findLabelAddress(arg)) == -1)
+    {
+        *err = ERR_UNDEFINED_LABEL;
+        return -1;
+    }
+
+    return addr;
+}
+
+int procOpADD(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
+        return ERR_NOT_ENOUGH_ARGUMENTS;
+
+    if (!isNumber(arg0))
+    {
+        *errArg = 0;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg1))
+    {
+        *errArg = 1;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg2))
+    {
+        *errArg = 2;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    inst->r.opcode = OP_ADD;
+    inst->r.regA = atoi(arg0);
+    inst->r.regB = atoi(arg1);
+    inst->r.destReg = atoi(arg2);
+
+    return ERR_OK;
+}
+
+int procOpNOR(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
+        return ERR_NOT_ENOUGH_ARGUMENTS;
+
+    if (!isNumber(arg0))
+    {
+        *errArg = 0;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg1))
+    {
+        *errArg = 1;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg2))
+    {
+        *errArg = 2;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    inst->r.opcode = OP_NOR;
+    inst->r.regA = atoi(arg0);
+    inst->r.regB = atoi(arg1);
+    inst->r.destReg = atoi(arg2);
+
+    return ERR_OK;
+}
+
+int procOpLW(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    enum ErrorCode err = ERR_OK;
+
+    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
+        return ERR_NOT_ENOUGH_ARGUMENTS;
+
+    if (!isNumber(arg0))
+    {
+        *errArg = 0;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg1))
+    {
+        *errArg = 1;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    inst->i.opcode = OP_LW;
+    inst->i.regA = atoi(arg0);
+    inst->i.regB = atoi(arg1);
+    inst->i.offset = labelOrImmediate(arg2, &err);
+
+    // maybe error is in arg2
+    if (err != ERR_OK)
+        *errArg = 2;
+
+    return err;
+}
+
+int procOpSW(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    enum ErrorCode err = ERR_OK;
+
+    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
+        return ERR_NOT_ENOUGH_ARGUMENTS;
+
+    if (!isNumber(arg0))
+    {
+        *errArg = 0;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg1))
+    {
+        *errArg = 1;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    inst->i.opcode = OP_SW;
+    inst->i.regA = atoi(arg0);
+    inst->i.regB = atoi(arg1);
+    inst->i.offset = labelOrImmediate(arg2, &err);
+
+    // maybe error is in arg2
+    if (err != ERR_OK)
+        *errArg = 2;
+
+    return err;
+}
+
+int procOpBEQ(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    enum ErrorCode err = ERR_OK;
+
+    if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
+        return ERR_NOT_ENOUGH_ARGUMENTS;
+
+    if (!isNumber(arg0))
+    {
+        *errArg = 0;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg1))
+    {
+        *errArg = 1;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    inst->i.opcode = OP_BEQ;
+    inst->i.regA = atoi(arg0);
+    inst->i.regB = atoi(arg1);
+    inst->i.offset = labelOrImmediate(arg2, &err);
+
+    // maybe error is in arg2
+    if (err != ERR_OK)
+        *errArg = 2;
+
+    return err;
+}
+
+int procOpJALR(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    if (strlen(arg0) == 0 || strlen(arg1) == 0)
+        return ERR_NOT_ENOUGH_ARGUMENTS;
+
+    if (!isNumber(arg0))
+    {
+        *errArg = 0;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    if (!isNumber(arg1))
+    {
+        *errArg = 1;
+        return ERR_INVALID_ARGUMENT;
+    }
+
+    inst->j.opcode = OP_NOR;
+    inst->j.regA = atoi(arg0);
+    inst->j.regB = atoi(arg1);
+
+    return ERR_OK;
+}
+
+int procOpHALT(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    inst->o.opcode = OP_HALT;
+
+    return ERR_OK;
+}
+
+int procOpNOOP(const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+{
+    inst->o.opcode = OP_NOOP;
+
+    return ERR_OK;
 }
