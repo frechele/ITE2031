@@ -164,10 +164,10 @@ enum ErrorCode
     ERR_INVALID_ARGUMENT,
 };
 
-int procRType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
-int procIType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
-int procJType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
-int procOType(enum OpCode opcode, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procRType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procIType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procJType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
+int procOType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
 
 void procSecondPass(FILE *inFilePtr, FILE *outFilePtr)
 {
@@ -215,21 +215,21 @@ void procSecondPass(FILE *inFilePtr, FILE *outFilePtr)
         else
         {
             if (strcmp(opcode, "add") == 0)
-                tmpAddr = procRType(OP_ADD, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procRType(OP_ADD, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "nor") == 0)
-                tmpAddr = procRType(OP_ADD, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procRType(OP_ADD, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "lw") == 0)
-                tmpAddr = procIType(OP_LW, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procIType(OP_LW, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "sw") == 0)
-                tmpAddr = procIType(OP_SW, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procIType(OP_SW, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "beq") == 0)
-                tmpAddr = procIType(OP_BEQ, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procIType(OP_BEQ, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "jalr") == 0)
-                tmpAddr = procJType(OP_JALR, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procJType(OP_JALR,curAddr,  arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "halt") == 0)
-                tmpAddr = procOType(OP_HALT, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procOType(OP_HALT,curAddr,  arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "noop") == 0)
-                tmpAddr = procOType(OP_NOOP, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procOType(OP_NOOP,curAddr,  arg0, arg1, arg2, &inst, &errArg);
             else
                 tmpAddr = ERR_UNRECOGNIZED_OPCODE;
 
@@ -362,7 +362,7 @@ int findLabelAddress(const char *label)
     return -1;
 }
 
-int labelOrImmediate(const char *arg, enum ErrorCode *err)
+int labelOrImmediate(int labelOffset, const char *arg, enum ErrorCode *err)
 {
     int addr;
 
@@ -377,10 +377,10 @@ int labelOrImmediate(const char *arg, enum ErrorCode *err)
         return -1;
     }
 
-    return addr;
+    return addr - labelOffset;
 }
 
-int procRType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procRType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     if (strlen(arg0) == 0 || strlen(arg1) == 0 || strlen(arg2) == 0)
         return ERR_NOT_ENOUGH_ARGUMENTS;
@@ -411,7 +411,7 @@ int procRType(enum OpCode opcode, const char *arg0, const char *arg1, const char
     return ERR_OK;
 }
 
-int procIType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procIType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     enum ErrorCode err = ERR_OK;
 
@@ -433,7 +433,7 @@ int procIType(enum OpCode opcode, const char *arg0, const char *arg1, const char
     inst->i.opcode = opcode;
     inst->i.regA = atoi(arg0);
     inst->i.regB = atoi(arg1);
-    inst->i.offset = labelOrImmediate(arg2, &err);
+    inst->i.offset = labelOrImmediate((opcode == OP_BEQ ? curAddr + 1 : 0), arg2, &err);
 
     // maybe error is in arg2
     if (err != ERR_OK)
@@ -442,7 +442,7 @@ int procIType(enum OpCode opcode, const char *arg0, const char *arg1, const char
     return err;
 }
 
-int procJType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procJType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     if (strlen(arg0) == 0 || strlen(arg1) == 0)
         return ERR_NOT_ENOUGH_ARGUMENTS;
@@ -466,7 +466,7 @@ int procJType(enum OpCode opcode, const char *arg0, const char *arg1, const char
     return ERR_OK;
 }
 
-int procOType(enum OpCode opcode, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
+int procOType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char* arg2, inst_t *inst, int* errArg)
 {
     inst->o.opcode = opcode;
 
