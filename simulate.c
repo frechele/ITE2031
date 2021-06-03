@@ -12,7 +12,7 @@ typedef struct
     int pc;
     int mem[NUM_MEMORY];
     int reg[NUM_REGS];
-    int num_memory;
+    int numMemory;
 } state_t;
 
 void printState(state_t*);
@@ -38,15 +38,15 @@ int main(int argc, char* argv[])
     }
 
     // read in the entire machine-code file into memory.
-    for (state.num_memory = 0; fgets(line, MAX_LINE_LENGTH, filePtr) != NULL; ++state.num_memory)
+    for (state.numMemory = 0; fgets(line, MAX_LINE_LENGTH, filePtr) != NULL; ++state.numMemory)
     {
-        if (sscanf(line, "%d", state.mem + state.num_memory) != 1)
+        if (sscanf(line, "%d", state.mem + state.numMemory) != 1)
         {
-            printf("error in reading address %d\n", state.num_memory);
+            printf("error in reading address %d\n", state.numMemory);
             exit(1);
         }
 
-        printf("memory[%d]=%d\n", state.num_memory, state.mem[state.num_memory]);
+        printf("memory[%d]=%d\n", state.numMemory, state.mem[state.numMemory]);
     }
 
     return 0;
@@ -59,7 +59,7 @@ void printState(state_t* state)
     printf("\tpc %d\n", state->pc);
 
     printf("\tmemory:\n");
-    for (i = 0; i < state->num_memory; ++i)
+    for (i = 0; i < state->numMemory; ++i)
     {
         printf("\t\tmem[ %d ] %d\n", i, state->mem[i]);
     }
