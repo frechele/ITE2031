@@ -63,3 +63,6 @@ for (i = 1; i < 10; ++i)
 
 ### samples/test2.as
 This test is designed to ensure that the jalr instruction was implemented correctly.
+
+### samples/test3.as
+This test is intended to ensure that the lw instruction was implemented correctly.
