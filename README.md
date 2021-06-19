@@ -70,3 +70,7 @@ This test is intended to ensure that the lw instruction was implemented correctl
 ### samples/test6.as
 This test is designed to check offsetField overflow condition.
 This code cannot generate machine language file.
+
+### samples/test7.as
+This test is designed to check undefined label using.
+This code cannot generate machine language file.
