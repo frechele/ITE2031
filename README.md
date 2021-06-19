@@ -66,3 +66,7 @@ This test is designed to ensure that the jalr instruction was implemented correc
 
 ### samples/test3.as
 This test is intended to ensure that the lw instruction was implemented correctly.
+
+### samples/test6.as
+This test is designed to check offsetField overflow condition.
+This code cannot generate machine language file.
