@@ -74,3 +74,7 @@ This code cannot generate machine language file.
 ### samples/test7.as
 This test is designed to check undefined label using.
 This code cannot generate machine language file.
+
+### samples/test8.as
+This test is designed to check unrecognized opcode.
+This code cannot generate machine language file.
