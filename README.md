@@ -64,7 +64,7 @@ This test is designed to check unrecognized opcode.
 This code cannot generate machine language file.
 
 ### samples/test4.as
-This test is designed to duplicated label.
+This test is designed to check duplicated label.
 This code cannot generate machine language file.
 
 ### samples/test6.as
