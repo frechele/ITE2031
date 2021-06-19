@@ -67,6 +67,10 @@ This code cannot generate machine language file.
 This test is designed to check duplicated label.
 This code cannot generate machine language file.
 
+### samples/test5.as
+This test is designed to check invalid arguments.
+This code cannot generate machine language file.
+
 ### samples/test6.as
 This test performs the same behavior as the C code below.
 ```c++
