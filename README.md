@@ -52,6 +52,22 @@ do {
 ```
 
 ### samples/test1.as
+This test is designed to check offsetField overflow condition.
+This code cannot generate machine language file.
+
+### samples/test2.as
+This test is designed to check undefined label using.
+This code cannot generate machine language file.
+
+### samples/test3.as
+This test is designed to check unrecognized opcode.
+This code cannot generate machine language file.
+
+### samples/test4.as
+This test is designed to duplicated label.
+This code cannot generate machine language file.
+
+### samples/test6.as
 This test performs the same behavior as the C code below.
 ```c++
 int i;
@@ -61,24 +77,9 @@ for (i = 1; i < 10; ++i)
     res += i;
 ```
 
-### samples/test2.as
+### samples/test7.as
 This test is designed to ensure that the jalr instruction was implemented correctly.
 
-### samples/test3.as
+### samples/test8.as
 This test is intended to ensure that the lw instruction was implemented correctly.
 
-### samples/test6.as
-This test is designed to check offsetField overflow condition.
-This code cannot generate machine language file.
-
-### samples/test7.as
-This test is designed to check undefined label using.
-This code cannot generate machine language file.
-
-### samples/test8.as
-This test is designed to check unrecognized opcode.
-This code cannot generate machine language file.
-
-### samples/test9.as
-This test is designed to duplicated label.
-This code cannot generate machine language file.
