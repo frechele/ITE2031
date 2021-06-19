@@ -162,6 +162,7 @@ enum ErrorCode
     ERR_UNDEFINED_LABEL,
     ERR_NOT_ENOUGH_ARGUMENTS,
     ERR_INVALID_ARGUMENT,
+    ERR_ARG_OVERFLOW,
 };
 
 int procRType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg1, const char * arg2, inst_t *inst, int* errArg);
@@ -285,6 +286,10 @@ bad:
     {
         printf("error: unrecognized opcode\n%s\n", opcode);
     }
+    else if (tmpAddr == ERR_ARG_OVERFLOW)
+    {
+        printf("error: argument overflow\n");
+    }
 
     fclose(inFilePtr);
     fclose(outFilePtr);
@@ -347,6 +352,14 @@ int isNumber(const char *string)
     int i;
 
     return (sscanf(string, "%d", &i) == 1);
+}
+
+// returns 1 if value is out of range.
+int checkOffsetRange(const char *string)
+{
+    int val = atoi(string);
+
+    return (val > 32767) || (val < -32768);
 }
 
 // return -1 if there is no consistent label.
@@ -428,6 +441,12 @@ int procIType(enum OpCode opcode, int curAddr, const char *arg0, const char *arg
     {
         *errArg = 1;
         return ERR_INVALID_ARGUMENT;
+    }
+
+    if (isNumber(arg2) && checkOffsetRange(arg2))
+    {
+        *errArg = 2;
+        return ERR_ARG_OVERFLOW;
     }
 
     inst->i.opcode = opcode;
