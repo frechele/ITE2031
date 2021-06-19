@@ -60,3 +60,6 @@ int res = 0;
 for (i = 1; i < 10; ++i)
     res += i;
 ```
+
+### samples/test2.as
+This test is designed to ensure that the jalr instruction was implemented correctly.
