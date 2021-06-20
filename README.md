@@ -100,3 +100,6 @@ for (i = 0; i < 10; ++i) {
   }
 }
 ```
+
+### samples/test10.as
+This test is the stress test. The simulator will execute a lots of instructions for calculate many matrix additions.
