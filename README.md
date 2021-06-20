@@ -87,3 +87,16 @@ This test is designed to ensure that the jalr instruction was implemented correc
 ### samples/test8.as
 This test is intended to ensure that the lw instruction was implemented correctly.
 
+### samples/test9.as
+This test is designed to ensure that the nor instruction and lw/sw offset were implemented correctly.
+This test performs the same behavior as the C code followed.
+```c++
+int i, j;
+int arr[10] = { 0 };
+
+for (i = 0; i < 10; ++i) {
+  for (j = 0; j < i; ++j) {
+    arr[i] += i;
+  }
+}
+```
