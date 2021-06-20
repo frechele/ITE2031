@@ -221,7 +221,7 @@ void OpNOR(const inst_t *inst, state_t *state)
 {
     unsigned regA = inst->r.regA, regB = inst->r.regB, destReg = inst->r.destReg;
 
-    state->reg[destReg] = !(state->reg[regA] | state->reg[regB]);
+    state->reg[destReg] = ~(state->reg[regA] | state->reg[regB]);
 }
 
 void OpLW(const inst_t *inst, state_t *state)

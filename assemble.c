@@ -218,7 +218,7 @@ void procSecondPass(FILE *inFilePtr, FILE *outFilePtr)
             if (strcmp(opcode, "add") == 0)
                 tmpAddr = procRType(OP_ADD, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "nor") == 0)
-                tmpAddr = procRType(OP_ADD, curAddr, arg0, arg1, arg2, &inst, &errArg);
+                tmpAddr = procRType(OP_NOR, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "lw") == 0)
                 tmpAddr = procIType(OP_LW, curAddr, arg0, arg1, arg2, &inst, &errArg);
             else if (strcmp(opcode, "sw") == 0)
